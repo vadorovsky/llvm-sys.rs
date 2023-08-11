@@ -1,0 +1,50 @@
+name: Rust Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  LLVM_SYS_170_FFI_WORKAROUND: "YES"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+    
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          components: rustfmt, clippy, miri, rust-src
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install LLVM
+        run: |
+          apt-get update -qq && apt-get install -qq -y lsb-release software-properties-common
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          ./llvm.sh 17
+          apt-get install libpolly-17-dev
+
+      - name: Build
+        run: cargo build
+
+      - name: Test
+        run: cargo test
+
+      - name: Run nop-function example
+        run: cargo run --example nop-function
+
+      - name: Run jit-function example
+        run: cargo run --example jit-function
+
+      - name: Run disassembler example
+        run: echo "Hello, world!" | cargo run --example disassembler
